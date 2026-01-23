@@ -30,26 +30,19 @@ Standard URDF with:
 ### cartpole.xml
 
 MuJoCo model for physics simulation:
-- RK4 integrator, 0.01s timestep
-- Actuator: Force on cart, range [-50, 50] N
+- RK4 integrator, 0.001s timestep
+- Actuator: Force on cart, range [-5, 5] N
 
 ## Directory Structure
 
 ```
 cartpole/
 ├── model/                      # Essential configuration files
-├── scripts/
+├── script/
 │   └── simulate.py             # Main simulation script
-├── src/
-│   ├── CartPoleInterface.cpp   # OCS2 interface implementation
-│   └── pyBindModule.cpp        # Python bindings
-├── include/ocs2_cartpole/
-│   ├── CartPoleInterface.h     # Interface class
-│   ├── CartPolePyBindings.h    # Python binding wrapper
-│   ├── CartPoleParameters.h    # Physical parameters struct
-│   ├── definitions.h           # State/input dimensions
-│   └── dynamics/
-│       └── CartPoleSystemDynamics.h  # Analytical dynamics
+├── ocs2_cartpole_interface/    # C++ Interface & Python Bindings
+│   ├── include/                # Header files
+│   └── src/                    # Implementation files
 └── auto_generated/             # CppAD compiled code (created at runtime)
 ```
 
@@ -66,35 +59,44 @@ This will:
 2. Launch the MuJoCo simulation with OCS2 MPC control
 3. The pole starts hanging down and swings up to upright
 
-## How It Works
+## Custom Integration Flow
 
-1. **Initialization**: `CartPoleInterface` reads `task.yaml` and sets up the OCS2 optimal control problem
-2. **Python bindings**: `CartpolePyBindings` exposes MPC to Python
-3. **Simulation loop** (`scripts/simulate.py`):
-   - Read state from MuJoCo
-   - Call `mpc.advanceMpc()` to compute optimal control
-   - Apply control to MuJoCo actuator
-   - Step physics simulation
+To integrate a new robot with OCS2 and MuJoCo, follow these three steps:
 
-## Customization
+1.  **Prepare URDF and XML models**
+    -   Define the physics and visualization in MuJoCo (`.xml`).
+    -   Define the kinematic structure in URDF (`.urdf`) if needed for library dynamics.
+    -   Configure the MPC costs and constraints in `task.yaml`.
+
+2.  **Prepare `ocs2_xxx_interface`**
+    -   Implement the C++ interface to bridge your models with OCS2 logic.
+    -   Generate Python bindings for this interface to enable control orchestration from Python.
+    -   Use `ocs2_cartpole_interface` as a template for this structure.
+
+3.  **Simulate**
+    -   Write a script (see `script/simulate.py`) to handle the control loop:
+        -   Read the current state from MuJoCo.
+        -   Compute the optimal control using the OCS2 interface.
+        -   Apply the control input back to the MuJoCo simulation.
+
+## Tuning and Customization
 
 ### Tuning the Controller
 
 Edit `model/task.yaml`:
-- Increase `Q_final` weights for tighter terminal tracking
-- Decrease `R` for more aggressive control
-- Adjust `mpc.timeHorizon` for longer/shorter planning
+- Increase `Q_final` weights for tighter terminal tracking.
+- Decrease `R` for more aggressive control.
+- Adjust `mpc.timeHorizon` for longer/shorter planning.
 
 ### Modifying Physics
 
 Edit `model/cartpole.xml`:
-- Change `timestep` for simulation accuracy
-- Modify actuator `ctrlrange` for force limits
-- Add damping to joints for realistic friction
+- Change `timestep` for simulation accuracy.
+- Modify actuator `ctrlrange` for force limits.
+- Add damping to joints for realistic friction.
 
-## Files You Can Ignore
+## References
 
-These are scaffolding, not essential for understanding the integration:
-- `CMakeLists.txt` - Build configuration
-- `cmake/` - CMake package config
-- `include/ocs2_cartpole/package_path.h.in` - Path resolution template
+- [OCS2 Documentation](https://leggedrobotics.github.io/ocs2/)
+- [MuJoCo Documentation](https://mujoco.readthedocs.io/)
+- [Pinocchio](https://stack-of-tasks.github.io/pinocchio/) - For URDF-based dynamics
