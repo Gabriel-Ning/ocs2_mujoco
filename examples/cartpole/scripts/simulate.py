@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""
+Cartpole Swing-Up with OCS2 MPC and MuJoCo
+
+This script demonstrates the integration of OCS2 (Optimal Control for Switched Systems)
+with MuJoCo simulation. The key insight is that you only need THREE files:
+
+1. model/task.yaml     - OCS2 problem formulation (costs, constraints, solver settings)
+2. model/cartpole.urdf - Robot description (optional: for kinematics/dynamics)
+3. model/cartpole.xml  - MuJoCo simulation model
+
+The C++ interface (CartPoleInterface) reads task.yaml and sets up the optimal control
+problem. Python bindings allow calling the MPC solver from this script.
+"""
+import mujoco
+import mujoco.viewer
+import numpy as np
+import os
+import sys
+import time
+
+# Add pixi environment to path
+sys.path.append(
+    os.path.abspath(
+        os.path.join(os.getcwd(), ".pixi/envs/default/lib/python3/dist-packages")
+    )
+)
+
+from ocs2_cartpole import CartpolePyBindings
+
+
+def main():
+    # Get example root directory (parent of scripts/)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    example_dir = os.path.dirname(script_dir)
+
+    # ==========================================================================
+    # THE THREE ESSENTIAL FILES
+    # ==========================================================================
+    # 1. Task configuration: defines the OCS2 optimal control problem
+    task_file = os.path.join(example_dir, "model/task.yaml")
+
+    # 2. URDF file: robot kinematics (optional for cartpole, used for more complex robots)
+    urdf_file = os.path.join(example_dir, "model/cartpole.urdf")
+
+    # 3. MuJoCo XML: simulation model for physics and visualization
+    mujoco_model = os.path.join(example_dir, "model/cartpole.xml")
+
+    # Auto-generated CppAD code directory (for performance optimization)
+    lib_folder = os.path.join(example_dir, "auto_generated")
+
+    # Ensure auto_generated directory exists
+    if not os.path.exists(lib_folder):
+        os.makedirs(lib_folder)
+
+    print("=" * 60)
+    print("Cartpole Swing-Up Demo")
+    print("=" * 60)
+    print(f"Task file:     {task_file}")
+    print(f"URDF file:     {urdf_file}")
+    print(f"MuJoCo model:  {mujoco_model}")
+    print(f"Library folder: {lib_folder}")
+    print("=" * 60)
+
+    # ==========================================================================
+    # Initialize OCS2 MPC
+    # ==========================================================================
+    print("\nInitializing OCS2 MPC...")
+    print("(First run compiles CppAD derivatives - this may take a moment)")
+    try:
+        mpc = CartpolePyBindings.mpc_interface(task_file, lib_folder, urdf_file)
+    except Exception as e:
+        print(f"Error initializing MPC: {e}")
+        return 1
+
+    # ==========================================================================
+    # Initialize MuJoCo Simulation
+    # ==========================================================================
+    if not os.path.exists(mujoco_model):
+        print(f"Error: {mujoco_model} not found.")
+        return 1
+
+    model = mujoco.MjModel.from_xml_path(mujoco_model)
+    data = mujoco.MjData(model)
+
+    # OCS2 solution buffers
+    t_sol = CartpolePyBindings.scalar_array()
+    x_sol = CartpolePyBindings.vector_array()
+    u_sol = CartpolePyBindings.vector_array()
+
+    # ==========================================================================
+    # Set Initial and Target States
+    # ==========================================================================
+    # Initial state: pole hanging down (theta = pi)
+    # State vector: [cart_pos, pole_angle, cart_vel, pole_angular_vel]
+    initial_state = np.array([0.0, np.pi, 0.0, 0.0])
+    data.qpos[:] = initial_state[:2]
+    data.qvel[:] = initial_state[2:]
+
+    # Target state: pole upright (theta = 0)
+    target_state = np.array([0.0, 0.0, 0.0, 0.0])
+
+    t_target = CartpolePyBindings.scalar_array()
+    x_target = CartpolePyBindings.vector_array()
+    u_target = CartpolePyBindings.vector_array()
+
+    t_target.push_back(0.0)
+    x_target.push_back(target_state)
+    u_target.push_back(np.zeros(1))
+
+    mpc.reset(CartpolePyBindings.TargetTrajectories(t_target, x_target, u_target))
+
+    # ==========================================================================
+    # Main Simulation Loop
+    # ==========================================================================
+    print("\nStarting simulation...")
+    print("Goal: Swing the pole up from hanging position to upright")
+    print("Press Ctrl+C or close the viewer to exit\n")
+
+    with mujoco.viewer.launch_passive(model, data) as viewer:
+        while viewer.is_running():
+            # Get current state from MuJoCo
+            current_state = np.concatenate([data.qpos, data.qvel])
+
+            # Run MPC optimization
+            mpc.setObservation(data.time, current_state, np.zeros(1))
+            mpc.advanceMpc()
+            mpc.getMpcSolution(t_sol, x_sol, u_sol)
+
+            # Apply optimal control input
+            if len(u_sol) > 0:
+                data.ctrl[0] = u_sol[0][0]
+
+            # Step physics
+            mujoco.mj_step(model, data)
+
+            # Update visualization
+            viewer.sync()
+            time.sleep(model.opt.timestep)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
