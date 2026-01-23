@@ -38,13 +38,13 @@ def main():
     # THE THREE ESSENTIAL FILES
     # ==========================================================================
     # 1. Task configuration: defines the OCS2 optimal control problem
-    task_file = os.path.join(example_dir, "model/task.yaml")
+    task_file = os.path.join(example_dir, "config/task.yaml")
 
     # 2. URDF file: robot kinematics (optional for cartpole, used for more complex robots)
-    urdf_file = os.path.join(example_dir, "model/cartpole.urdf")
+    urdf_file = os.path.join(example_dir, "models/control/cartpole.urdf")
 
     # 3. MuJoCo XML: simulation model for physics and visualization
-    mujoco_model = os.path.join(example_dir, "model/cartpole.xml")
+    mujoco_model = os.path.join(example_dir, "models/simulation/cartpole.xml")
 
     # Auto-generated CppAD code directory (for performance optimization)
     lib_folder = os.path.join(example_dir, "auto_generated")

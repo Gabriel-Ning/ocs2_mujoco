@@ -38,7 +38,7 @@ add_subdirectory(ocs2_cartpole_interface)
 # Install Models
 # =============================================================================
 
-# Install model files (the essential configuration files)
-install(DIRECTORY model
+# Install model and config files
+install(DIRECTORY config models
   DESTINATION share/ocs2_cartpole_interface
 )

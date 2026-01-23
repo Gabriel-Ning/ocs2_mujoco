@@ -7,10 +7,13 @@ This tutorial demonstrates how to integrate [OCS2](https://github.com/leggedrobo
 To use OCS2 with MuJoCo, you only need **three essential files**:
 
 ```
-model/
-├── task.yaml       # OCS2 problem definition (costs, constraints, solver settings)
-├── robot.urdf      # Robot description (kinematics, dynamics parameters)
-└── robot.xml       # MuJoCo simulation model (physics, visualization)
+├── config/
+│   └── task.yaml       # OCS2 problem definition (costs, constraints, solver settings)
+└── models/
+    ├── control/
+    │   └── robot.urdf  # Robot description (kinematics, dynamics parameters)
+    └── simulation/
+        └── robot.xml   # MuJoCo simulation model (physics, visualization)
 ```
 
 Everything else (C++ interface, Python bindings, auto-generated code) is scaffolding to connect these files.
@@ -25,10 +28,13 @@ ocs2_mujoco/
 │   └── ocs2_lib/               # OCS2 library (git submodule)
 └── examples/
     └── cartpole/               # Complete working example
-        ├── model/              # ★ THE ESSENTIAL FILES ★
-        │   ├── task.yaml       # OCS2 configuration
-        │   ├── cartpole.urdf   # Robot description
-        │   └── cartpole.xml    # MuJoCo model
+        ├── config/             # OCS2 configuration
+        │   └── task.yaml
+        ├── models/             # Robot models
+        │   ├── control/        # URDF for OCS2
+        │   │   └── cartpole.urdf
+        │   └── simulation/     # XML for MuJoCo
+        │       └── cartpole.xml
         ├── ocs2_cartpole_interface/
         │   ├── include/        # C++ headers
         │   └── src/            # C++ interface & bindings
@@ -114,8 +120,8 @@ OCS2 uses CppAD for automatic differentiation. Generated code is cached in `auto
 ## Custom Integration Steps
 
 1. **Prepare URDF and XML models**
-   - Create `model/robot.urdf` and `model/robot.xml`.
-   - Create `model/task.yaml` for OCS2 configuration.
+   - Create `models/simulation/robot.xml` and `models/control/robot.urdf`.
+   - Create `config/task.yaml` for OCS2 configuration.
 
 2. **Prepare `ocs2_xxx_interface`**
    - Create a library interface (e.g., `ocs2_myrobot_interface`) that implements the C++ OCS2 interface.
