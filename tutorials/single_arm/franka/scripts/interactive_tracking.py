@@ -172,7 +172,7 @@ def main():
     print(f"✓ Initial target: {target_pos}")
 
     # Control config
-    mpc_update_rate = 5  # Update MPC every 5 steps (200Hz)
+    mpc_update_rate = 5  # Update MPC every 10 steps (100Hz)
     target_update_rate = 50  # Update target every 50 steps (20Hz)
     step_counter = 0
     last_u = np.zeros(7)

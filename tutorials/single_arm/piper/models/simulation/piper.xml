@@ -1,7 +1,8 @@
 <mujoco model="piper_description">
   <compiler angle="radian" meshdir="assets"/>
 
-  <option integrator="implicitfast" cone="elliptic" impratio="10"/>
+  <!-- <option integrator="implicitfast" cone="elliptic" impratio="10"/> -->
+  <option timestep="0.001" integrator="implicitfast"/>
 
   <default>
     <default class="piper">

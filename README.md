@@ -49,9 +49,30 @@ ocs2_mujoco/
 # Install pixi if not already installed
 curl -fsSL https://pixi.sh/install.sh | bash
 
-# Build and run the cartpole example
+# Run the Cartpole example (DDP)
 pixi run cartpole
+
+# Run Robot Interactive Tracking (MPC)
+pixi run franka
+pixi run piper
 ```
+
+## Available Examples
+
+### 1. Cartpole (Baseline)
+A standard 2-DOF cartpole system using SLQ (Sequential Linear Quadratic) solver.
+- **Run:** `pixi run cartpole`
+- **Location:** `examples/cartpole/`
+
+### 2. Franka Emika Panda (Interactive)
+A 7-DOF arm tracking a mouse-controlled mocap target in real-time.
+- **Run:** `pixi run franka`
+- **Location:** `tutorials/single_arm/franka/`
+
+### 3. Piper Robot (Interactive)
+A 6-DOF lightweight arm with optimized pose tracking and gripper support.
+- **Run:** `pixi run piper`
+- **Location:** `tutorials/single_arm/piper/`
 
 ## Understanding the Three Essential Files
 

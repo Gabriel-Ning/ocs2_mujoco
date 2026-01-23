@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Interactive MPC Target Tracking for the Piper Robot
-- MPC Control: robot_descriptions piper_description (6-DOF Arm)
-- Simulation: robot_descriptions piper_mj_description (MuJoCo Menagerie)
+- MPC Control: Local URDF (6-DOF Arm)
+- Simulation: Local MJCF
 """
 import mujoco
 import mujoco.viewer
@@ -10,21 +10,6 @@ import numpy as np
 import os
 import sys
 import time
-
-# Set local cache directory within the project
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../"))
-os.environ["ROBOT_DESCRIPTIONS_CACHE"] = os.path.join(
-    project_root, ".pixi/robot_descriptions"
-)
-
-# Load descriptions from robot_descriptions
-from robot_descriptions.piper_mj_description import MJCF_PATH
-
-# Set ROS_PACKAGE_PATH so Pinocchio can find the meshes
-# The piper_description package is located in the cloned repository src folder
-os.environ["ROS_PACKAGE_PATH"] = os.path.join(
-    project_root, ".pixi/robot_descriptions/Piper_ros/src"
-)
 
 # Add pixi environment to path for OCS2 bindings
 sys.path.append(
@@ -54,15 +39,8 @@ def main():
     print("=" * 60)
 
     # Load MuJoCo model (local model)
-    local_mjcf_path = os.path.join(script_dir, "../models/simulation/piper.xml")
-    with open(local_mjcf_path, "r", encoding="utf-8") as f:
-        mjcf_content = f.read()
-
-    # Update mesh dir to point to the robot_descriptions cache
-    mesh_dir = os.path.join(os.path.dirname(MJCF_PATH), "assets")
-    mjcf_content = mjcf_content.replace('meshdir="assets"', f'meshdir="{mesh_dir}"')
-
-    model = mujoco.MjModel.from_xml_string(mjcf_content)
+    local_mjcf_path = os.path.join(script_dir, "../models/simulation/scene.xml")
+    model = mujoco.MjModel.from_xml_path(local_mjcf_path)
     data = mujoco.MjData(model)
 
     # Initialize OCS2 MPC
@@ -116,7 +94,7 @@ def main():
     )
 
     # Control loop
-    mpc_update_rate = 1  # Run MPC at every step (10ms)
+    mpc_update_rate = 5  # Run MPC at every step (10ms)
     step_counter = 0
     last_u = np.zeros(state_dim)
     last_target_pos = target_pos.copy()

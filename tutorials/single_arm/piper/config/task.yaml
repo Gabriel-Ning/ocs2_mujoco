@@ -55,7 +55,7 @@ ddp:
 rollout:
   AbsTolODE: 1e-5                     # Absolute ODE tolerance
   RelTolODE: 1e-3                     # Relative ODE tolerance
-  timeStep: 1e-2                      # Rollout time step
+  timeStep: 1e-3                      # Rollout time step
   integratorType: ODE45               # Integrator type
   maxNumStepsPerSecond: 100000        # Max ODE steps per second
   checkNumericalStability: false      # Check numerical stability

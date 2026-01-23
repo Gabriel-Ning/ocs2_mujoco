@@ -16,6 +16,12 @@ clean = "rm -rf build"
 cartpole = { cmd = "python examples/cartpole/script/simulate.py", depends-on = [
     "install",
 ] }
+franka = { cmd = "python tutorials/single_arm/franka/scripts/interactive_tracking.py", depends-on = [
+    "install",
+] }
+piper = { cmd = "python tutorials/single_arm/piper/scripts/interactive_tracking.py", depends-on = [
+    "install",
+] }
 
 [dependencies]
 # Build tools
