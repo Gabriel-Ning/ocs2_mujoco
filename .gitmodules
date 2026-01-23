@@ -1,0 +1,3 @@
+[submodule "external/ocs2_lib"]
+	path = external/ocs2_lib
+	url = git@github.com:Gabriel-Ning/ocs2_lib.git
