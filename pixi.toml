@@ -13,7 +13,9 @@ install = { cmd = "cmake --install build", depends-on = ["build"] }
 clean = "rm -rf build"
 
 # Run examples
-cartpole = { cmd = "python examples/cartpole/scripts/simulate.py", depends-on = ["install"] }
+cartpole = { cmd = "python examples/cartpole/script/simulate.py", depends-on = [
+    "install",
+] }
 
 [dependencies]
 # Build tools

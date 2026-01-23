@@ -29,10 +29,11 @@ ocs2_mujoco/
         │   ├── task.yaml       # OCS2 configuration
         │   ├── cartpole.urdf   # Robot description
         │   └── cartpole.xml    # MuJoCo model
-        ├── scripts/
+        ├── ocs2_cartpole_interface/
+        │   ├── include/        # C++ headers
+        │   └── src/            # C++ interface & bindings
+        ├── script/
         │   └── simulate.py     # Main simulation script
-        ├── src/                # C++ interface (minimal)
-        ├── include/            # C++ headers
         └── auto_generated/     # CppAD compiled code (runtime)
 ```
 
@@ -110,23 +111,19 @@ class MyDynamics : public SystemDynamicsBaseAD {
 
 OCS2 uses CppAD for automatic differentiation. Generated code is cached in `auto_generated/` for faster subsequent runs.
 
-## Creating a New Robot Integration
+## Custom Integration Steps
 
-1. **Create model files:**
-   - `model/task.yaml` - Define your control problem
-   - `model/robot.urdf` - Robot description
-   - `model/robot.xml` - MuJoCo simulation
+1. **Prepare URDF and XML models**
+   - Create `model/robot.urdf` and `model/robot.xml`.
+   - Create `model/task.yaml` for OCS2 configuration.
 
-2. **Copy cartpole example structure:**
-   - Modify `CartPoleInterface` for your robot
-   - Adjust state/input dimensions in `definitions.h`
-   - Update Python simulation script
+2. **Prepare `ocs2_xxx_interface`**
+   - Create a library interface (e.g., `ocs2_myrobot_interface`) that implements the C++ OCS2 interface.
+   - If you want to use a Python script for simulation, you **must** provide Python bindings for this interface.
+   - Reference the `ocs2_cartpole_interface` as a template.
 
-3. **Build and test:**
-   ```bash
-   pixi run build
-   pixi run your_robot
-   ```
+3. **Simulate**
+   - Use a Python script (like `script/simulate.py`) to run the simulation, connecting the OCS2 bindings with the MuJoCo simulation.
 
 ## References
 

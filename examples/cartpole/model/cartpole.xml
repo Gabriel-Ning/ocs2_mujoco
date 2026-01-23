@@ -1,27 +1,36 @@
 <mujoco model="cartpole">
-    <compiler inertiafromgeom="true"/>
-    <default>
-        <joint armature="0" damping="0" limited="false"/>
-        <geom contype="0" friction="0.1 0.1 0.1" rgba="0.7 0.7 0 1"/>
-        <tendon/>
-        <motor ctrlrange="-100 100"/>
-    </default>
-    <option gravity="0 0 -9.81" integrator="RK4" timestep="0.01"/>
-    <size nstack="3000"/>
-    <worldbody>
-        <light pos="0 0 5" dir="0 0 -1" diffuse="1 1 1"/>
-        <geom name="floor" pos="0 0 -0.1" size="2 2 0.1" type="plane" rgba="0.2 0.2 0.2 1"/>
-        <geom name="rail" type="capsule" size="0.02 1" pos="0 0 0" quat="0.707 0 0.707 0" rgba="0.3 0.3 0.7 1"/>
-        <body name="cart" pos="0 0 0">
-            <joint name="slider" type="slide" axis="1 0 0" damping="0.5"/>
-            <geom name="cart" type="box" size="0.2 0.1 0.1" rgba="0.6 0.6 0.6 1"/>
-            <body name="pole" pos="0 0 0">
-                <joint name="hinge" type="hinge" axis="0 1 0" pos="0 0 0" damping="0.0"/>
-                <geom name="cpole" type="capsule" fromto="0 0 0 0 0 0.5" size="0.025" rgba="0.8 0.2 0.2 1"/>
-            </body>
-        </body>
-    </worldbody>
-    <actuator>
-        <motor name="slide" joint="slider" gear="1" ctrllimited="true" ctrlrange="-50 50"/>
-    </actuator>
+  <compiler angle="radian" autolimits="true"/>
+  <option gravity="0 0 -9.81" integrator="RK4" timestep="0.001"/>
+  
+  <default>
+    <joint damping="0.0"/>
+    <geom type="capsule" rgba="0.8 0.6 0.4 1"/>
+  </default>
+  
+  <asset>
+    <material name="grey" rgba="0.5 0.5 0.5 1"/>
+  </asset>
+  
+  <worldbody>
+    <light name="light" pos="0 0 6"/>
+    <geom name="floor" type="plane" size="5 5 0.1" rgba=".8 .9 .8 1"/>
+    
+    <!-- Cart -->
+    <body name="cart" pos="0 0 0.5">
+      <joint name="slider" type="slide" axis="1 0 0" range="-10 10"/>
+      <geom name="cart" type="box" size="0.2 0.1 0.1" rgba="0.3 0.3 0.8 1"/>
+      <inertial pos="0 0 0" mass="2.0" diaginertia="0.133 0.133 0.133"/>
+      
+      <!-- Pole -->
+      <body name="pole" pos="0 0 0">
+        <joint name="hinge" type="hinge" axis="0 1 0" limited="false"/>
+        <geom name="pole" type="capsule" fromto="0 0 0 0 0 1" size="0.015" rgba="0.8 0.3 0.3 1" contype="0" conaffinity="0"/>
+        <inertial pos="0 0 0.5" mass="0.2" diaginertia="0.016667 0.016667 0.0001"/>
+      </body>
+    </body>
+  </worldbody>
+  
+  <actuator>
+    <motor name="slide" joint="slider" gear="1" ctrllimited="true" ctrlrange="-5 5"/>
+  </actuator>
 </mujoco>

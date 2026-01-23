@@ -1,3 +1,41 @@
-# pixi environments
-.pixi/*
+# Pixi
+.pixi
 !.pixi/config.toml
+
+# C++ / CMake
+build/
+cmake-build-debug/
+cmake-build-release/
+CMakeCache.txt
+CMakeFiles/
+*.cmake
+!CMakeLists.txt
+!cmake/*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.venv/
+venv/
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+.cache/
+mujoco_log.txt
+*.log

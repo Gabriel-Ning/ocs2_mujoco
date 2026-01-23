@@ -91,21 +91,22 @@ def main():
     # ==========================================================================
     # Set Initial and Target States
     # ==========================================================================
-    # Initial state: pole hanging down (theta = pi)
-    # State vector: [cart_pos, pole_angle, cart_vel, pole_angular_vel]
-    initial_state = np.array([0.0, np.pi, 0.0, 0.0])
-    data.qpos[:] = initial_state[:2]
-    data.qvel[:] = initial_state[2:]
+    # Initial state for MuJoCo: pole hanging down (theta = pi)
+    # MuJoCo State vector: [cart_pos (x), pole_angle (theta), cart_vel, pole_angular_vel]
+    initial_mujoco_state = np.array([0.0, np.pi, 0.0, 0.0])
+    data.qpos[:] = initial_mujoco_state[:2]
+    data.qvel[:] = initial_mujoco_state[2:]
 
-    # Target state: pole upright (theta = 0)
-    target_state = np.array([0.0, 0.0, 0.0, 0.0])
+    # Target state for OCS2: pole upright (theta = 0) at origin
+    # OCS2 State vector: [theta, x, theta_dot, x_dot]
+    target_ocs2_state = np.array([0.0, 0.0, 0.0, 0.0])
 
     t_target = CartpolePyBindings.scalar_array()
     x_target = CartpolePyBindings.vector_array()
     u_target = CartpolePyBindings.vector_array()
 
     t_target.push_back(0.0)
-    x_target.push_back(target_state)
+    x_target.push_back(target_ocs2_state)
     u_target.push_back(np.zeros(1))
 
     mpc.reset(CartpolePyBindings.TargetTrajectories(t_target, x_target, u_target))
@@ -117,17 +118,37 @@ def main():
     print("Goal: Swing the pole up from hanging position to upright")
     print("Press Ctrl+C or close the viewer to exit\n")
 
+    # Frequencies
+    mpc_freq = 100.0   # Hz (Run MPC at 100Hz)
+    sim_dt = model.opt.timestep  # usually 0.001 (1kHz)
+    mpc_dt = 1.0 / mpc_freq
+    
+    # Simulation state
+    last_mpc_time = 0.0
+    
     with mujoco.viewer.launch_passive(model, data) as viewer:
+        start_time = time.time()
         while viewer.is_running():
-            # Get current state from MuJoCo
-            current_state = np.concatenate([data.qpos, data.qvel])
-
-            # Run MPC optimization
-            mpc.setObservation(data.time, current_state, np.zeros(1))
-            mpc.advanceMpc()
-            mpc.getMpcSolution(t_sol, x_sol, u_sol)
+            step_start = time.time()
+            current_sim_time = data.time
+            
+            # Run MPC at specified frequency
+            if current_sim_time - last_mpc_time >= mpc_dt:
+                # Get current state from MuJoCo (x, theta, x_dot, theta_dot)
+                qpos = data.qpos
+                qvel = data.qvel
+                
+                # Map MuJoCo state to OCS2 state: [theta, x, theta_dot, x_dot]
+                ocs2_state = np.array([qpos[1], qpos[0], qvel[1], qvel[0]])
+    
+                # Run MPC optimization
+                mpc.setObservation(current_sim_time, ocs2_state, np.zeros(1))
+                mpc.advanceMpc()
+                mpc.getMpcSolution(t_sol, x_sol, u_sol)
+                last_mpc_time = current_sim_time
 
             # Apply optimal control input
+            # Note: OCS2 returns a trajectory, we just take the first element or interpolate
             if len(u_sol) > 0:
                 data.ctrl[0] = u_sol[0][0]
 
@@ -136,7 +157,15 @@ def main():
 
             # Update visualization
             viewer.sync()
-            time.sleep(model.opt.timestep)
+            
+            # Real-time synchronization
+            # We want to keep the loop running at real-time speed relative to the simulation time
+            # Since mj_step advances time by sim_dt, we want the wall clock to advance by sim_dt as well
+            
+            elapsed = time.time() - step_start
+            sleep_time = sim_dt - elapsed
+            if sleep_time > 0:
+                time.sleep(sleep_time)
 
     return 0
 
