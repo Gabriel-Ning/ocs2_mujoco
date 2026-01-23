@@ -1,0 +1,54 @@
+[workspace]
+name = "ocs2_mujoco"
+version = "0.1.0"
+authors = ["Gabriel-Ning <guomning@gmail.com>"]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tasks]
+configure = "cmake -B build -S . -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DBUILD_EXAMPLES=ON -DBUILD_PYTHON_INTERFACE=ON"
+build = { cmd = "cmake --build build -j$(nproc)", depends-on = ["configure"] }
+install = { cmd = "cmake --install build", depends-on = ["build"] }
+clean = "rm -rf build"
+tutorial = { cmd = "python tutorials/interactive_tracking.py", depends-on = [
+    "install",
+] }
+cartpole = { cmd = "python examples/example_cartpole/simulate.py", depends-on = [
+    "install",
+] }
+
+[dependencies]
+# Build tools
+cmake = ">=3.16"
+ninja = "*"
+cxx-compiler = "*"
+pkg-config = "*"
+
+# Core dependencies (C++)
+eigen = ">=3.4"
+libboost-devel = "*"
+libboost-headers = "*"
+
+# GNU MP and other math libs
+gmp = "*"
+mpfr = "*"
+
+# Robotics
+pinocchio = "*"
+libcoal = "*"
+urdfdom = "*"
+
+# Optimization
+glpk = "*"
+libblasfeo = "*"
+
+# Testing
+gtest = "*"
+yaml-cpp = ">=0.8.0,<0.9"
+
+# Python support
+python = ">=3.10"
+pybind11 = "*"
+numpy = "*"
+mujoco = ">=3.3.7,<4"
+pyyaml = ">=6.0.3,<7"
