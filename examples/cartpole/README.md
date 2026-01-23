@@ -1,45 +1,100 @@
-# Cartpole Integration Tutorial
+# Cartpole Example
 
-This example demonstrates how to control a custom robot (Cartpole) using OCS2 and MuJoCo.
-The process is broken down into 5 key steps:
+This example demonstrates a complete OCS2 + MuJoCo integration for the classic cartpole swing-up problem.
 
-## Step 1: Prepare the Robot Description (URDF)
+## The Three Essential Files
 
-**File:** `urdf/cartpole.urdf`
+Everything you need to define the control problem is in `model/`:
 
-- Defines the kinematic chain and inertial properties.
-- Used by OCS2 to compute the system dynamics and derivatives.
+```
+model/
+├── task.yaml       # OCS2 configuration (costs, constraints, solver)
+├── cartpole.urdf   # Robot description
+└── cartpole.xml    # MuJoCo simulation model
+```
 
-## Step 2: Prepare the Simulation Model (MuJoCo XML)
+### task.yaml
 
-**File:** `cartpole.xml`
+Defines the optimal control problem:
+- **State**: `[theta, x, theta_dot, x_dot]` (pole angle, cart position, velocities)
+- **Input**: Force applied to cart
+- **Cost**: Terminal cost to reach upright position
+- **Solver**: SLQ (Sequential Linear Quadratic) with 5s horizon
 
-- Defines the visual simulation, contacts, and physics engine settings.
-- **Critical:** The joint names and ordering usually need to match the URDF, or you must handle the mapping manually.
+### cartpole.urdf
 
-## Step 3: Configure the MPC Task
+Standard URDF with:
+- Cart: 2.0 kg mass, prismatic joint
+- Pole: 0.2 kg mass, 1.0 m length, continuous joint
 
-**File:** `config/mpc/task.info`
+### cartpole.xml
 
-- Defines the cost function (matrices Q, R), constraints, and time horizons.
-- Tuning these values changes the robot's behavior (e.g., how aggressive it swings up).
+MuJoCo model for physics simulation:
+- RK4 integrator, 0.01s timestep
+- Actuator: Force on cart, range [-50, 50] N
 
-## Step 4: Generate Python Bindings (C++)
+## Directory Structure
 
-**Files:** `CMakeLists.txt`, `src/CartPoleInterface.cpp`
+```
+cartpole/
+├── model/                      # Essential configuration files
+├── scripts/
+│   └── simulate.py             # Main simulation script
+├── src/
+│   ├── CartPoleInterface.cpp   # OCS2 interface implementation
+│   └── pyBindModule.cpp        # Python bindings
+├── include/ocs2_cartpole/
+│   ├── CartPoleInterface.h     # Interface class
+│   ├── CartPolePyBindings.h    # Python binding wrapper
+│   ├── CartPoleParameters.h    # Physical parameters struct
+│   ├── definitions.h           # State/input dimensions
+│   └── dynamics/
+│       └── CartPoleSystemDynamics.h  # Analytical dynamics
+└── auto_generated/             # CppAD compiled code (created at runtime)
+```
 
-- OCS2 is a C++ library. We need a small C++ wrapper to expose the MPC interface to Python.
-- This is handled automatically by the build system (`pixi run install`).
+## Running the Example
 
-## Step 5: Run the Simulation Loop
+From the repository root:
 
-**File:** `simulate.py`
+```bash
+pixi run cartpole
+```
 
-- Connects everything:
-    1. Initializes MPC with Step 1 & 3 files.
-    2. Loads MuJoCo simulation from Step 2.
-    3. Runs the control loop:
-        - Read State (`qpos`, `qvel`)
-        - Compute Optimal Control (`mpc.advanceMpc()`)
-        - Apply Control (`data.ctrl`)
-        - Step Simulation (`mujoco.mj_step`)
+This will:
+1. Build the C++ library and Python bindings
+2. Launch the MuJoCo simulation with OCS2 MPC control
+3. The pole starts hanging down and swings up to upright
+
+## How It Works
+
+1. **Initialization**: `CartPoleInterface` reads `task.yaml` and sets up the OCS2 optimal control problem
+2. **Python bindings**: `CartpolePyBindings` exposes MPC to Python
+3. **Simulation loop** (`scripts/simulate.py`):
+   - Read state from MuJoCo
+   - Call `mpc.advanceMpc()` to compute optimal control
+   - Apply control to MuJoCo actuator
+   - Step physics simulation
+
+## Customization
+
+### Tuning the Controller
+
+Edit `model/task.yaml`:
+- Increase `Q_final` weights for tighter terminal tracking
+- Decrease `R` for more aggressive control
+- Adjust `mpc.timeHorizon` for longer/shorter planning
+
+### Modifying Physics
+
+Edit `model/cartpole.xml`:
+- Change `timestep` for simulation accuracy
+- Modify actuator `ctrlrange` for force limits
+- Add damping to joints for realistic friction
+
+## Files You Can Ignore
+
+These are scaffolding, not essential for understanding the integration:
+- `CMakeLists.txt` - Build configuration
+- `cmake/` - CMake package config
+- `include/ocs2_cartpole/package_path.h.in` - Path resolution template
