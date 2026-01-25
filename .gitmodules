@@ -1,3 +1,9 @@
 [submodule "external/ocs2_lib"]
 	path = external/ocs2_lib
 	url = git@github.com:Gabriel-Ning/ocs2_lib.git
+[submodule "external/curobo"]
+	path = external/curobo
+	url = git@github.com:Gabriel-Ning/curobo.git
+[submodule "external/pyroki"]
+	path = external/pyroki
+	url = https://github.com/chungmin99/pyroki.git
