@@ -59,3 +59,10 @@ numpy = "*"
 mujoco = ">=3.3.7,<4"
 pyyaml = ">=6.0.3,<7"
 robot_descriptions = ">=1.22.0,<2"
+adam-robotics = "*"
+liecasadi = "*"
+pink = ">=3.5.0,<4"
+
+[pypi-dependencies]
+qpsolvers = { version = "*", extras = ["clarabel", "daqp", "proxqp", "scs"] }
+mink = "*"

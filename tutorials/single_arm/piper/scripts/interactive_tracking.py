@@ -23,15 +23,10 @@ from ocs2_mobile_manipulator import MobileManipulatorPyBindings
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    source_dir = os.path.abspath(os.path.join(script_dir, "../../../../"))
-
     # Paths
     task_file = os.path.join(script_dir, "../config/task.yaml")
     # We'll use a new auto-generated folder for piper
-    lib_folder = os.path.join(
-        source_dir,
-        "external/ocs2_lib/robotic_interfaces/ocs2_mobile_manipulator/auto_generated/piper_interactive",
-    )
+    lib_folder = os.path.join(script_dir, "../models/auto_generated")
     urdf_file = os.path.join(script_dir, "../models/control/urdf/piper.urdf")
 
     print("=" * 60)

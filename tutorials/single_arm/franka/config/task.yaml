@@ -38,7 +38,7 @@ ddp:
   AbsTolODE: 1e-5                     # Absolute ODE tolerance
   RelTolODE: 1e-3                     # Relative ODE tolerance
   maxNumStepsPerSecond: 100000        # Max ODE steps per second
-  timeStep: 1e-3                      # Integration time step
+  timeStep: 1e-2                      # Integration time step
   backwardPassIntegratorType: ODE45   # Backward pass integrator
   constraintPenaltyInitialValue: 20.0 # Initial constraint penalty
   constraintPenaltyIncreaseRate: 2.0  # Penalty increase rate
