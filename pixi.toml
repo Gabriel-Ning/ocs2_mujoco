@@ -58,11 +58,30 @@ pybind11 = "*"
 numpy = "*"
 mujoco = ">=3.3.7,<4"
 pyyaml = ">=6.0.3,<7"
+cuda-nvcc = ">=12.8,<13"
+cuda = "12.8.*"
+cudnn = ">=9.10.1.4,<10"
+
 robot_descriptions = ">=1.22.0,<2"
 adam-robotics = "*"
 liecasadi = "*"
 pink = ">=3.5.0,<4"
+matplotlib = ">=3.10.8,<4"
+qpsolvers = ">=4.8"
+clarabel = "*"
 
 [pypi-dependencies]
-qpsolvers = { version = "*", extras = ["clarabel", "daqp", "proxqp", "scs"] }
 mink = "*"
+meshcat = ">=0.3.2, <0.4"
+nvidia-curobo = { path = "external/curobo", editable = true }
+pyroki = { path = "external/pyroki", editable = true }
+piper-sdk = ">=0.6.1, <0.7"
+grpcio-tools = "*"
+torch = "*"
+torchvision = "*"
+torchaudio = "*"
+jax = { version = "==0.7.2", extras = ["cuda12"] }
+jax-cuda12-pjrt = "==0.7.2"
+
+[activation]
+env = { CUDA_PATH = "$CONDA_PREFIX", XLA_FLAGS = "--xla_gpu_cuda_data_dir=$CONDA_PREFIX" }

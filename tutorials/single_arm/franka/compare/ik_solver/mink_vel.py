@@ -57,6 +57,7 @@ def main():
     with mujoco.viewer.launch_passive(model, data) as viewer:
         step_counter = 0
         last_stats_time = time.time()
+        solve_times = []
 
         # Solver setup
         print(f"Available solvers: {qpsolvers.available_solvers}")
@@ -66,34 +67,36 @@ def main():
         while viewer.is_running():
             step_start = time.time()
 
-            # Control rate: 100Hz
-            if step_counter % 10 == 0:
-                # 1. Update Configuration from Real Robot (Sim)
-                configuration.update(data.qpos)
+            # Control rate: 1000Hz (Every step)
+            # 1. Update Configuration from Real Robot (Sim)
+            configuration.update(data.qpos)
 
-                # 2. Get Target
-                # Mink SE3 helper
-                T_target = mink.SE3.from_mocap_name(model, data, "target")
+            # 2. Get Target
+            # Mink SE3 helper
+            T_target = mink.SE3.from_mocap_name(model, data, "target")
 
-                # 3. Update Tasks
-                ee_task.set_target(T_target)
+            # 3. Update Tasks
+            ee_task.set_target(T_target)
 
-                # 4. Solve IK
-                # dt = 0.01 (control step)
-                try:
-                    vel = mink.solve_ik(
-                        configuration, tasks, dt=0.01, solver=solver, damping=1e-2
-                    )
-                except Exception as e:
-                    # Fallback or print error
-                    # print(f"IK Failed: {e}")
-                    vel = np.zeros(model.nv)
+            # 4. Solve IK
+            # dt = 0.001 (control step)
+            try:
+                solve_start = time.perf_counter()
+                vel = mink.solve_ik(
+                    configuration, tasks, dt=0.001, solver=solver, damping=1e-2
+                )
+                solve_end = time.perf_counter()
+                solve_times.append(solve_end - solve_start)
+            except Exception as e:
+                # Fallback or print error
+                # print(f"IK Failed: {e}")
+                vel = np.zeros(model.nv)
 
-                # 5. Apply Velocity
-                # data.ctrl corresponds to the actuators.
-                # Assuming actuators 0-6 are arm joints.
-                # vel has size model.nv.
-                data.ctrl[:7] = vel[:7]
+            # 5. Apply Velocity
+            # data.ctrl corresponds to the actuators.
+            # Assuming actuators 0-6 are arm joints.
+            # vel has size model.nv.
+            data.ctrl[:7] = vel[:7]
 
             mujoco.mj_step(model, data)
             step_counter += 1
@@ -106,10 +109,22 @@ def main():
                 err_vec = ee_task.compute_error(configuration)  # 6D error
                 pos_err = np.linalg.norm(err_vec[:3])
 
-                target_p = data.mocap_pos[0]
+                # target_p = data.mocap_pos[0]
+
+                if solve_times:
+                    avg_solve_ms = np.mean(solve_times) * 1000
+                    max_solve_ms = np.max(solve_times) * 1000
+                    deadline_met = max_solve_ms < (model.opt.timestep * 1000)
+                    solve_times = []  # Reset for next window
+                else:
+                    avg_solve_ms = 0
+                    max_solve_ms = 0
+                    deadline_met = False
+
+                deadline_str = "OK" if deadline_met else "FAIL"
 
                 print(
-                    f"t:{data.time:.1f}s | Mink Rate: 100Hz | Target: [{target_p[0]:.2f}, {target_p[1]:.2f}, {target_p[2]:.2f}] | Error: {pos_err:.4f}m"
+                    f"t:{data.time:.1f}s | Solve: {avg_solve_ms:.2f}ms (max: {max_solve_ms:.2f}ms) | Deadline: {deadline_str} | Error: {pos_err:.4f}m"
                 )
                 last_stats_time = time.time()
 
