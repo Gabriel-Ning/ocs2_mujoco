@@ -2,16 +2,9 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 import casadi as cs
-import os
-import sys
 import time
 import pathlib
 import scipy.spatial.transform
-
-# Add adam to python path
-current_dir = pathlib.Path(__file__).parent.absolute()
-adam_path = current_dir.parent.parent.parent.parent / "adam" / "src"
-sys.path.append(str(adam_path))
 
 from adam.casadi import KinDynComputations
 
