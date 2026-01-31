@@ -21,7 +21,7 @@ clean = "rm -rf build"
 # ] }
 
 # Run examples
-cartpole = { cmd = "python examples/cartpole/script/simulate.py", depends-on = [
+cartpole = { cmd = "python examples/cartpole/scripts/simulate.py", depends-on = [
     "install",
 ] }
 # franka = { cmd = "python tutorials/single_arm/franka/scripts/interactive_tracking.py", depends-on = [
