@@ -1,14 +1,27 @@
 cmake_minimum_required(VERSION 3.16)
 
-# Library Name
+# =============================================================================
+# Cartpole Interface Library
+# =============================================================================
+#
+# This builds:
+#   1. ocs2_cartpole_interface - C++ library
+#   2. CartpolePyBindings - Python module (if BUILD_PYTHON_INTERFACE is ON)
+#
+# The simplified structure uses:
+#   - Cartpole.h: Single header with all definitions
+#   - Cartpole.cpp: Implementation
+#   - PyBindModule.cpp: Python bindings
+#
+
 set(LIB_NAME "ocs2_cartpole_interface")
 
-# =============================================================================
-# Core Library
-# =============================================================================
+# -----------------------------------------------------------------------------
+# C++ Library
+# -----------------------------------------------------------------------------
 
 add_library(${LIB_NAME}
-  src/CartPoleInterface.cpp
+  src/Cartpole.cpp
 )
 add_library(ocs2::${LIB_NAME} ALIAS ${LIB_NAME})
 
@@ -32,27 +45,28 @@ target_link_libraries(${LIB_NAME}
 
 target_compile_options(${LIB_NAME} PUBLIC ${OCS2_CXX_FLAGS})
 
-# =============================================================================
+# -----------------------------------------------------------------------------
 # Python Bindings
-# =============================================================================
+# -----------------------------------------------------------------------------
 
 if(BUILD_PYTHON_INTERFACE)
   pybind11_add_module(CartpolePyBindings
-    src/pyBindModule.cpp
+    src/PyBindModule.cpp
   )
   target_link_libraries(CartpolePyBindings PRIVATE
     ${LIB_NAME}
     ocs2::ocs2_python_interface
   )
 
+  # Install to Python packages directory
   install(TARGETS CartpolePyBindings
     LIBRARY DESTINATION lib/python3/dist-packages/ocs2_cartpole
   )
 endif()
 
-# =============================================================================
+# -----------------------------------------------------------------------------
 # Install
-# =============================================================================
+# -----------------------------------------------------------------------------
 
 install(TARGETS ${LIB_NAME}
   ARCHIVE DESTINATION lib
