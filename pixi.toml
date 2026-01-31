@@ -13,23 +13,23 @@ install = { cmd = "cmake --install build", depends-on = ["build"] }
 clean = "rm -rf build"
 
 # Install external dependencies
-curobo-install = { cmd = "pip install -e external/curobo --no-build-isolation" }
-pyroki-install = { cmd = "pip install -e external/pyroki" }
-install-ext = { cmd = "true", depends-on = [
-    "curobo-install",
-    "pyroki-install",
-] }
+# curobo-install = { cmd = "pip install -e external/curobo --no-build-isolation" }
+# pyroki-install = { cmd = "pip install -e external/pyroki" }
+# install-ext = { cmd = "true", depends-on = [
+#     "curobo-install",
+#     "pyroki-install",
+# ] }
 
 # Run examples
 cartpole = { cmd = "python examples/cartpole/script/simulate.py", depends-on = [
     "install",
 ] }
-franka = { cmd = "python tutorials/single_arm/franka/scripts/interactive_tracking.py", depends-on = [
-    "install",
-] }
-piper = { cmd = "python tutorials/single_arm/piper/scripts/interactive_tracking.py", depends-on = [
-    "install",
-] }
+# franka = { cmd = "python tutorials/single_arm/franka/scripts/interactive_tracking.py", depends-on = [
+#     "install",
+# ] }
+# piper = { cmd = "python tutorials/single_arm/piper/scripts/interactive_tracking.py", depends-on = [
+#     "install",
+# ] }
 
 [dependencies]
 # Build tools
@@ -77,12 +77,11 @@ liecasadi = "*"
 pink = ">=3.5.0,<4"
 matplotlib = ">=3.10.8,<4"
 # qpsolvers = ">=4.8"
-clarabel = "*"
+# clarabel = "*"
 
 [pypi-dependencies]
 mink = "*"
 meshcat = ">=0.3.2, <0.4"
-
 # piper-sdk = ">=0.6.1, <0.7"
 grpcio-tools = "*"
 torch = "*"
