@@ -13,6 +13,7 @@
 #include <ocs2_core/penalties/Penalties.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <iostream>
 
 namespace ocs2 {
@@ -24,19 +25,24 @@ namespace cartpole {
 
 void Parameters::loadFromYaml(const std::string& taskFile,
                               const std::string& prefix, bool verbose) {
-  loadData::loadCppDataType(taskFile, prefix + ".cartMass", cartMass);
-  loadData::loadCppDataType(taskFile, prefix + ".poleMass", poleMass);
-  loadData::loadCppDataType(taskFile, prefix + ".poleLength", poleLength);
-  loadData::loadCppDataType(taskFile, prefix + ".maxInput", maxInput);
-  loadData::loadCppDataType(taskFile, prefix + ".gravity", gravity);
+  boost::property_tree::ptree pt;
+  loadData::loadPtreeFromFile(taskFile, pt);
 
   if (verbose) {
-    std::cerr << "\n=== Cartpole Parameters ===\n"
-              << "  cartMass:   " << cartMass << " kg\n"
-              << "  poleMass:   " << poleMass << " kg\n"
-              << "  poleLength: " << poleLength << " m\n"
-              << "  maxInput:   " << maxInput << " N\n"
-              << "  gravity:    " << gravity << " m/s²\n";
+    std::cerr << "\n #### Cart-pole Parameters:";
+    std::cerr << "\n #### ==========================================================\n";
+  }
+  loadData::loadPtreeValue(pt, cartMass, prefix + ".cartMass", verbose);
+  loadData::loadPtreeValue(pt, poleMass, prefix + ".poleMass", verbose);
+  loadData::loadPtreeValue(pt, poleLength, prefix + ".poleLength", verbose);
+  loadData::loadPtreeValue(pt, maxInput, prefix + ".maxInput", verbose);
+  loadData::loadPtreeValue(pt, gravity, prefix + ".gravity", verbose);
+
+  // Compute derived quantities
+  computeDerived();
+
+  if (verbose) {
+    std::cerr << " #### ==========================================================\n\n";
   }
 }
 
@@ -85,6 +91,12 @@ Interface::Interface(const std::string& taskFile,
   loadData::loadEigenMatrix(taskFile, "R", R);
   loadData::loadEigenMatrix(taskFile, "Q_final", Qf);
 
+  if (verbose) {
+    std::cerr << "Q:  \n" << Q << "\n";
+    std::cerr << "R:  \n" << R << "\n";
+    std::cerr << "Q_final:\n" << Qf << "\n";
+  }
+
   problem_.costPtr->add("cost",
                         std::make_unique<QuadraticStateInputCost>(Q, R));
   problem_.finalCostPtr->add("finalCost",
@@ -100,23 +112,24 @@ Interface::Interface(const std::string& taskFile,
   rolloutPtr_ = std::make_unique<TimeTriggeredRollout>(*problem_.dynamicsPtr,
                                                        rolloutSettings);
 
-  // 4. Input constraints
-  auto penalty = []() {
-    augmented::SlacknessSquaredHingePenalty::Config config;
-    config.scale = 0.1;
-    config.stepSize = 1.0;
-    return augmented::SlacknessSquaredHingePenalty::create(config);
+  // 4. Input constraints (load penalty config from YAML)
+  auto getPenalty = [&taskFile, verbose]() {
+    using penalty_type = augmented::SlacknessSquaredHingePenalty;
+    penalty_type::Config boundsConfig;
+    loadData::loadPenaltyConfig(taskFile, "bounds_penalty_config", boundsConfig, verbose);
+    return penalty_type::create(boundsConfig);
   };
 
-  auto constraint = [&params]() {
-    const vector_t e = (vector_t(2) << params.maxInput, params.maxInput).finished();
-    const vector_t D = (vector_t(2) << 1.0, -1.0).finished();
-    const matrix_t C = matrix_t::Zero(2, STATE_DIM);
+  auto getConstraint = [&params]() {
+    constexpr size_t numIneqConstraint = 2;
+    const vector_t e = (vector_t(numIneqConstraint) << params.maxInput, params.maxInput).finished();
+    const vector_t D = (vector_t(numIneqConstraint) << 1.0, -1.0).finished();
+    const matrix_t C = matrix_t::Zero(numIneqConstraint, STATE_DIM);
     return std::make_unique<LinearStateInputConstraint>(e, C, D);
   };
 
   problem_.inequalityLagrangianPtr->add("inputLimits",
-                                        create(constraint(), penalty()));
+                                        create(getConstraint(), getPenalty()));
 
   // 5. Initialization
   initializerPtr_ = std::make_unique<DefaultInitializer>(INPUT_DIM);
