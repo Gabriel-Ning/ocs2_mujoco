@@ -1,19 +1,37 @@
 # Cartpole Example
 
-This example demonstrates a complete OCS2 + MuJoCo integration for the classic cartpole swing-up problem.
+This example demonstrates OCS2 + MuJoCo integration for the classic cartpole swing-up problem.
 
-## The Three Essential Files
-
-Everything you need to define the control problem is in `model/`:
+## Directory Structure
 
 ```
-model/
-├── task.yaml       # OCS2 configuration (costs, constraints, solver)
-├── cartpole.urdf   # Robot description
-└── cartpole.xml    # MuJoCo simulation model
+cartpole/
+├── models/                     # Robot models
+│   ├── control/
+│   │   └── cartpole.urdf       # URDF for controller (Pinocchio)
+│   └── simulation/
+│       └── cartpole.xml        # MuJoCo simulation model
+├── configs/
+│   └── task.yaml               # OCS2 task definition
+├── scripts/
+│   └── simulate.py             # Simulation with MPC control
+├── interface/                  # C++ interface & Python bindings
+│   ├── include/                # Headers
+│   └── src/                    # Implementation
+└── auto_generated/             # CppAD compiled code (runtime)
 ```
 
-### task.yaml
+## Essential Files
+
+To define a new robot control problem, you need:
+
+| File | Purpose |
+|------|---------|
+| `configs/task.yaml` | Cost matrices, constraints, solver settings, physical parameters |
+| `models/control/*.urdf` | Robot kinematics/dynamics for controller |
+| `models/simulation/*.xml` | MuJoCo model for physics simulation |
+
+### configs/task.yaml
 
 Defines the optimal control problem:
 - **State**: `[theta, x, theta_dot, x_dot]` (pole angle, cart position, velocities)
@@ -21,34 +39,19 @@ Defines the optimal control problem:
 - **Cost**: Terminal cost to reach upright position
 - **Solver**: SLQ (Sequential Linear Quadratic) with 5s horizon
 
-### cartpole.urdf
+### models/control/cartpole.urdf
 
 Standard URDF with:
 - Cart: 2.0 kg mass, prismatic joint
 - Pole: 0.2 kg mass, 1.0 m length, continuous joint
 
-### cartpole.xml
+### models/simulation/cartpole.xml
 
 MuJoCo model for physics simulation:
 - RK4 integrator, 0.001s timestep
 - Actuator: Force on cart, range [-5, 5] N
 
-## Directory Structure
-
-```
-cartpole/
-├── model/                      # Essential configuration files
-├── script/
-│   └── simulate.py             # Main simulation script
-├── ocs2_cartpole_interface/    # C++ Interface & Python Bindings
-│   ├── include/                # Header files
-│   └── src/                    # Implementation files
-└── auto_generated/             # CppAD compiled code (created at runtime)
-```
-
 ## Running the Example
-
-From the repository root:
 
 ```bash
 pixi run cartpole
@@ -56,47 +59,70 @@ pixi run cartpole
 
 This will:
 1. Build the C++ library and Python bindings
-2. Launch the MuJoCo simulation with OCS2 MPC control
+2. Launch MuJoCo simulation with OCS2 MPC control
 3. The pole starts hanging down and swings up to upright
 
-## Custom Integration Flow
+## Why C++ Code is Needed
 
-To integrate a new robot with OCS2 and MuJoCo, follow these three steps:
+OCS2 requires C++ for:
 
-1.  **Prepare URDF and XML models**
-    -   Define the physics and visualization in MuJoCo (`.xml`).
-    -   Define the kinematic structure in URDF (`.urdf`) if needed for library dynamics.
-    -   Configure the MPC costs and constraints in `task.yaml`.
+1. **Automatic Differentiation (CppAD)**: OCS2 uses CppAD to compute analytical derivatives of dynamics for efficient optimization. This requires C++ types.
 
-2.  **Prepare `ocs2_xxx_interface`**
-    -   Implement the C++ interface to bridge your models with OCS2 logic.
-    -   Generate Python bindings for this interface to enable control orchestration from Python.
-    -   Use `ocs2_cartpole_interface` as a template for this structure.
+2. **Python Bindings (pybind11)**: The MPC solver runs in C++ for performance; Python bindings expose the interface.
 
-3.  **Simulate**
-    -   Write a script (see `script/simulate.py`) to handle the control loop:
-        -   Read the current state from MuJoCo.
-        -   Compute the optimal control using the OCS2 interface.
-        -   Apply the control input back to the MuJoCo simulation.
+3. **Problem Assembly**: Cost functions, constraints, and dynamics are assembled into an `OptimalControlProblem` in C++.
 
-## Tuning and Customization
+### Robot-Specific C++ Code
+
+Only these parts need modification for a new robot:
+
+| File | What to Change |
+|------|----------------|
+| `definitions.h` | `STATE_DIM` and `INPUT_DIM` |
+| `dynamics/CartPoleSystemDynamics.h` | `systemFlowMap()` dynamics equations |
+| `CartPoleParameters.h` | Physical parameters struct |
+| `CartPoleInterface.cpp` | Cost/constraint setup (if needed) |
+
+### Reducing C++ Code with Pinocchio
+
+For robots with URDF models, you can use Pinocchio to automatically compute dynamics instead of writing `systemFlowMap()` manually. This is recommended for:
+- Complex multi-joint robots
+- Robots where URDF already exists
+- When analytical dynamics are tedious to derive
+
+See `ocs2_mobile_manipulator` in ocs2_lib for a Pinocchio-based example.
+
+## Customization
 
 ### Tuning the Controller
 
-Edit `model/task.yaml`:
-- Increase `Q_final` weights for tighter terminal tracking.
-- Decrease `R` for more aggressive control.
-- Adjust `mpc.timeHorizon` for longer/shorter planning.
+Edit `configs/task.yaml`:
+- Increase `Q_final` weights for tighter terminal tracking
+- Decrease `R` for more aggressive control
+- Adjust `mpc.timeHorizon` for longer/shorter planning
 
 ### Modifying Physics
 
-Edit `model/cartpole.xml`:
-- Change `timestep` for simulation accuracy.
-- Modify actuator `ctrlrange` for force limits.
-- Add damping to joints for realistic friction.
+Edit `models/simulation/cartpole.xml`:
+- Change `timestep` for simulation accuracy
+- Modify actuator `ctrlrange` for force limits
+- Add damping to joints for realistic friction
+
+## State Mapping
+
+MuJoCo and OCS2 use different state orderings:
+
+| Index | OCS2 State | MuJoCo qpos | MuJoCo qvel |
+|-------|------------|-------------|-------------|
+| 0 | theta | qpos[1] | qvel[1] |
+| 1 | x | qpos[0] | qvel[0] |
+| 2 | theta_dot | - | - |
+| 3 | x_dot | - | - |
+
+The simulation script handles this mapping.
 
 ## References
 
 - [OCS2 Documentation](https://leggedrobotics.github.io/ocs2/)
 - [MuJoCo Documentation](https://mujoco.readthedocs.io/)
-- [Pinocchio](https://stack-of-tasks.github.io/pinocchio/) - For URDF-based dynamics
+- [Pinocchio](https://stack-of-tasks.github.io/pinocchio/)

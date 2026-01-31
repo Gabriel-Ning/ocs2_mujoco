@@ -32,13 +32,13 @@ endif()
 # Subdirectories
 # =============================================================================
 
-add_subdirectory(ocs2_cartpole_interface)
+add_subdirectory(interface)
 
 # =============================================================================
-# Install Models
+# Install Configuration and Models
 # =============================================================================
 
-# Install model and config files
-install(DIRECTORY config models
-  DESTINATION share/ocs2_cartpole_interface
+# Install configs and models directories
+install(DIRECTORY configs models
+  DESTINATION share/ocs2_cartpole
 )

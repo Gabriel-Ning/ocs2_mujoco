@@ -2,15 +2,15 @@
 """
 Cartpole Swing-Up with OCS2 MPC and MuJoCo
 
-This script demonstrates the integration of OCS2 (Optimal Control for Switched Systems)
-with MuJoCo simulation. The key insight is that you only need THREE files:
+This script demonstrates OCS2 + MuJoCo integration for optimal control.
 
-1. model/task.yaml     - OCS2 problem formulation (costs, constraints, solver settings)
-2. model/cartpole.urdf - Robot description (optional: for kinematics/dynamics)
-3. model/cartpole.xml  - MuJoCo simulation model
+Essential Files:
+  configs/task.yaml              - OCS2 problem definition (costs, constraints, solver)
+  models/control/cartpole.urdf   - Robot URDF for controller (Pinocchio interface)
+  models/simulation/cartpole.xml - MuJoCo simulation model
 
-The C++ interface (CartPoleInterface) reads task.yaml and sets up the optimal control
-problem. Python bindings allow calling the MPC solver from this script.
+The C++ interface reads task.yaml and builds the optimal control problem.
+Python bindings enable calling the MPC solver from this script.
 """
 import mujoco
 import mujoco.viewer
@@ -35,10 +35,10 @@ def main():
     example_dir = os.path.dirname(script_dir)
 
     # ==========================================================================
-    # THE THREE ESSENTIAL FILES
+    # ESSENTIAL FILES
     # ==========================================================================
     # 1. Task configuration: defines the OCS2 optimal control problem
-    task_file = os.path.join(example_dir, "config/task.yaml")
+    task_file = os.path.join(example_dir, "configs/task.yaml")
 
     # 2. URDF file: robot kinematics (optional for cartpole, used for more complex robots)
     urdf_file = os.path.join(example_dir, "models/control/cartpole.urdf")
