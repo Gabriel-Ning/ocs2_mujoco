@@ -19,7 +19,7 @@ if(NOT TARGET ocs2::ocs2_core)
   find_package(ocs2 REQUIRED)
 endif()
 
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 find_package(Boost REQUIRED COMPONENTS system filesystem log_setup log)
 
 # Python bindings

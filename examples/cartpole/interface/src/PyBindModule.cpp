@@ -11,4 +11,4 @@
 #include <ocs2_python_interface/PybindMacros.h>
 
 // This macro creates the Python module with standard OCS2 bindings
-CREATE_ROBOT_PYTHON_BINDINGS(ocs2::cartpole::PyBindings, Cartpole)
+CREATE_ROBOT_PYTHON_BINDINGS(ocs2::cartpole::PyBindings, CartpolePyBindings)

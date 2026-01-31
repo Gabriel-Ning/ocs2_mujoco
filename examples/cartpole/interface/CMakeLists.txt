@@ -37,6 +37,7 @@ target_link_libraries(${LIB_NAME}
     ocs2::ocs2_ddp
     ocs2::ocs2_mpc
     ocs2::ocs2_robotic_tools
+    ocs2::ocs2_python_interface
     Eigen3::Eigen
     Boost::filesystem
     Boost::system
