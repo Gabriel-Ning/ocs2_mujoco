@@ -47,11 +47,15 @@ struct Parameters {
   scalar_t maxInput = 5.0;      // N
   scalar_t gravity = 9.81;      // m/s²
 
-  // Derived quantities
-  scalar_t poleHalfLength() const { return poleLength / 2.0; }
-  scalar_t poleSteinerMoi() const {
-    return poleMass * poleHalfLength() * poleHalfLength() +
-           poleMass * gravity * poleHalfLength();
+  // Derived quantities (computed after loading)
+  scalar_t poleHalfLength = 0.5;    // L/2
+  scalar_t poleMoi = 0.0;           // (1/12) * m * L^2
+  scalar_t poleSteinerMoi = 0.0;    // I_cm + m * (L/2)^2
+
+  void computeDerived() {
+    poleHalfLength = poleLength / 2.0;
+    poleMoi = (1.0 / 12.0) * poleMass * poleLength * poleLength;
+    poleSteinerMoi = poleMoi + poleMass * poleHalfLength * poleHalfLength;
   }
 
   void loadFromYaml(const std::string& taskFile, const std::string& prefix,
@@ -89,38 +93,32 @@ public:
    * State: x = [θ, x, θ̇, ẋ]
    * Input: u = [F]
    * Returns: ẋ = [θ̇, ẋ, θ̈, ẍ]
+   *
+   * Reference: https://pdfs.semanticscholar.org/f95b/9d4cc0814034f2e601cb91fcd70b2e806420.pdf
    */
   ad_vector_t systemFlowMap(ad_scalar_t /*time*/, const ad_vector_t& state,
                             const ad_vector_t& input,
                             const ad_vector_t& /*params*/) const override {
-    const ad_scalar_t theta = state(0);
-    const ad_scalar_t theta_dot = state(2);
-    const ad_scalar_t F = input(0);
-
-    const ad_scalar_t cosTheta = cos(theta);
-    const ad_scalar_t sinTheta = sin(theta);
+    const ad_scalar_t cosTheta = cos(state(0));
+    const ad_scalar_t sinTheta = sin(state(0));
 
     // Inertia matrix [2x2]
-    const ad_scalar_t L = static_cast<ad_scalar_t>(params_.poleHalfLength());
-    const ad_scalar_t mp = static_cast<ad_scalar_t>(params_.poleMass);
-    const ad_scalar_t mc = static_cast<ad_scalar_t>(params_.cartMass);
-    const ad_scalar_t g = static_cast<ad_scalar_t>(params_.gravity);
-
-    Eigen::Matrix<ad_scalar_t, 2, 2> M;
-    M << mp * L * L + mp * g * L * cosTheta, mp * L * cosTheta,
-         mp * L * cosTheta, mc + mp;
+    Eigen::Matrix<ad_scalar_t, 2, 2> I;
+    I << static_cast<ad_scalar_t>(params_.poleSteinerMoi),
+         static_cast<ad_scalar_t>(params_.poleMass * params_.poleHalfLength) * cosTheta,
+         static_cast<ad_scalar_t>(params_.poleMass * params_.poleHalfLength) * cosTheta,
+         static_cast<ad_scalar_t>(params_.cartMass + params_.poleMass);
 
     // Right-hand side
     Eigen::Matrix<ad_scalar_t, 2, 1> rhs;
-    rhs << mp * g * L * sinTheta,
-           F + mp * L * theta_dot * theta_dot * sinTheta;
+    rhs << params_.poleMass * params_.poleHalfLength * params_.gravity * sinTheta,
+           input(0) + params_.poleMass * params_.poleHalfLength *
+                      pow(state(2), 2) * sinTheta;
 
-    // Solve: [theta_ddot, x_ddot]^T = M^{-1} * rhs
-    Eigen::Matrix<ad_scalar_t, 2, 1> accel = M.inverse() * rhs;
-
-    ad_vector_t xdot(STATE_DIM);
-    xdot << state(2), state(3), accel(0), accel(1);
-    return xdot;
+    // Solve: [theta_ddot, x_ddot]^T = I^{-1} * rhs
+    ad_vector_t stateDerivative(STATE_DIM);
+    stateDerivative << state.tail<2>(), I.inverse() * rhs;
+    return stateDerivative;
   }
 
 private:
