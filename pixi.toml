@@ -7,10 +7,18 @@ platforms = ["linux-64"]
 
 [tasks]
 # Build tasks
-configure = "cmake -B build -S . -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DBUILD_EXAMPLES=ON -DBUILD_PYTHON_INTERFACE=ON"
+configure = "cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DBUILD_EXAMPLES=ON -DBUILD_PYTHON_INTERFACE=ON"
 build = { cmd = "cmake --build build -j$(nproc)", depends-on = ["configure"] }
 install = { cmd = "cmake --install build", depends-on = ["build"] }
 clean = "rm -rf build"
+
+# Install external dependencies
+curobo-install = { cmd = "pip install -e external/curobo --no-build-isolation" }
+pyroki-install = { cmd = "pip install -e external/pyroki" }
+install-ext = { cmd = "true", depends-on = [
+    "curobo-install",
+    "pyroki-install",
+] }
 
 # Run examples
 cartpole = { cmd = "python examples/cartpole/script/simulate.py", depends-on = [
@@ -54,6 +62,7 @@ yaml-cpp = ">=0.8.0,<0.9"
 
 # Python support
 python = ">=3.10"
+pip = "*"
 pybind11 = "*"
 numpy = "*"
 mujoco = ">=3.3.7,<4"
@@ -67,21 +76,21 @@ adam-robotics = "*"
 liecasadi = "*"
 pink = ">=3.5.0,<4"
 matplotlib = ">=3.10.8,<4"
-qpsolvers = ">=4.8"
+# qpsolvers = ">=4.8"
 clarabel = "*"
 
 [pypi-dependencies]
 mink = "*"
 meshcat = ">=0.3.2, <0.4"
-nvidia-curobo = { path = "external/curobo", editable = true }
-pyroki = { path = "external/pyroki", editable = true }
-piper-sdk = ">=0.6.1, <0.7"
+
+# piper-sdk = ">=0.6.1, <0.7"
 grpcio-tools = "*"
 torch = "*"
 torchvision = "*"
 torchaudio = "*"
 jax = { version = "==0.7.2", extras = ["cuda12"] }
 jax-cuda12-pjrt = "==0.7.2"
+qpsolvers = { version = ">=4.8", extras = ["clarabel", "daqp"] }
 
 [activation]
-env = { CUDA_PATH = "$CONDA_PREFIX", XLA_FLAGS = "--xla_gpu_cuda_data_dir=$CONDA_PREFIX" }
+env = { CUDA_PATH = "$CONDA_PREFIX", XLA_FLAGS = "--xla_gpu_cuda_data_dir=$CONDA_PREFIX", TORCH_CUDA_ARCH_LIST = "8.6" }
